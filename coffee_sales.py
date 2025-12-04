@@ -7,19 +7,16 @@ from sklearn.preprocessing import LabelEncoder
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# ==================== KONFIGURASI HALAMAN ====================
 st.set_page_config(page_title="Coffee Shop - Prediksi Produk Terlaris", layout="wide")
 st.title("Prediksi Kategori Produk yang Paling Sering Dibeli Pelanggan")
 st.markdown("### Metode: K-Nearest Neighbors + **Euclidean Distance** (Cepat & Akurat!)")
 
-# ==================== LOAD DATA ====================
 @st.cache_data
 def load_data():
     return pd.read_excel("Coffee Shop Sales.xlsx", sheet_name="Transactions")
 
 df = load_data()
 
-# ==================== 1. TAMPILKAN DATA AWAL ====================
 st.subheader("1. Data Transaksi Awal")
 n_show = st.radio(
     "Pilih berapa baris data awal yang ingin ditampilkan:",
@@ -33,7 +30,6 @@ if n_show == "Semua data (~149.116 baris)":
 else:
     st.dataframe(df.head(int(n_show.split()[0])), use_container_width=True)
 
-# ==================== 2. PREPROCESSING ====================
 le_loc = LabelEncoder()
 df["store_location_enc"] = le_loc.fit_transform(df["store_location"])
 
@@ -43,8 +39,7 @@ y_full = df["product_category"]
 le_cat = LabelEncoder()
 y_enc_full = le_cat.fit_transform(y_full)
 
-# ==================== 3. PILIH JUMLAH DATA TRAINING ====================
-st.subheader("2. Pilih Jumlah Data untuk Training")
+st.subheader("2. Pilih dan Tampilkan Jumlah Data untuk Training dan Testing")
 train_size = st.radio(
     "Gunakan berapa data untuk training?",
     options=["1.000 baris", "5.000 baris", "20.000 baris", "50.000 baris", "Semua data (~149.116)"],
@@ -67,8 +62,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y_enc, test_size=0.2, random_state=42, stratify=y_enc
 )
 
-# ==================== 4. TAMPILKAN TRAINING & TESTING ====================
-st.subheader("3. Tampilkan Data Training atau Testing")
 view = st.radio(
     "Pilih data yang ingin Anda lihat:",
     options=["Data Training (Semua Baris)", "Data Testing (Semua Baris)"],
@@ -86,8 +79,7 @@ else:
     st.write(f"**Total Data Testing: {len(test_view):,} baris**")
     st.dataframe(test_view.reset_index(drop=True), use_container_width=True, height=600)
 
-# ==================== 5. PILIH NILAI K ====================
-st.subheader("4. Pilih Nilai K yang Ingin Ditampilkan")
+st.subheader("3. Pilih Nilai K yang Ingin Ditampilkan")
 k_selected = st.radio(
     "Pilih nilai K (akan dibandingkan dengan K terbaik):",
     options=[3, 5, 7, 9, 11, 13, 15],
@@ -97,7 +89,6 @@ k_selected = st.radio(
 
 st.info(f"Kamu memilih **K = {k_selected}** → akan dibandingkan dengan K terbaik dari eksperimen")
 
-# ==================== 6. PROSES KNN ====================
 run_knn = st.button("PROSES KNN & EVALUASI KLASIFIKASI LENGKAP", type="primary", use_container_width=True)
 
 if run_knn:
@@ -131,7 +122,6 @@ if run_knn:
 
         results_df = pd.DataFrame(results)
 
-        # Highlight: K pilihan = kuning, K terbaik = hijau
         def highlight_rows(row):
             if row["K"] == k_selected and row["K"] == best_k:
                 return ['background-color: #ffff99; font-weight: bold'] * len(row)
@@ -146,14 +136,12 @@ if run_knn:
         st.subheader("Perbandingan Akurasi Semua Nilai K")
         st.dataframe(results_df.style.apply(highlight_rows, axis=1), use_container_width=True)
 
-        # Prediksi untuk K pilihan dan K terbaik
         pred_user = predictions_dict[k_selected]
         pred_best = predictions_dict[best_k]
         true_labels = le_cat.inverse_transform(y_test)
         label_user = le_cat.inverse_transform(pred_user)
         label_best = le_cat.inverse_transform(pred_best)
 
-        # ==================== 2 TABEL PREDIKSI LENGKAP ====================
         st.markdown("---")
         st.header("Hasil Prediksi Lengkap")
 
@@ -181,7 +169,6 @@ if run_knn:
                       delta=f"{(best_acc - accuracy_score(y_test, pred_user))*100:+.3f}%")
             st.dataframe(tbl2, use_container_width=True, height=600)
 
-        # ==================== EVALUASI KLASIFIKASI LENGKAP (BARU!) ====================
         st.markdown("---")
         st.header("Evaluasi Klasifikasi Lengkap (Model Terbaik K = {})".format(best_k))
 
@@ -208,7 +195,6 @@ if run_knn:
             plt.title(f"Confusion Matrix - Model Terbaik (K={best_k})")
             st.pyplot(fig)
 
-        # Analisis Kesalahan
         st.subheader("Analisis Pola Kesalahan")
         errors = pd.DataFrame({"Aktual": true_labels, "Prediksi": label_best})
         wrong = errors[errors["Aktual"] != errors["Prediksi"]]
